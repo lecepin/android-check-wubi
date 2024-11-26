@@ -196,7 +196,6 @@
         }
         
         .favorite-btn {
-            position: absolute;
             top: 15px;
             right: 15px;
             background: none;
@@ -312,7 +311,31 @@
             -ms-user-select: text;
             user-select: text;
         }
+        
+        .button-group {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .export-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #95a5a6;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+        
+        .export-btn:hover {
+            color: #3498db;
+            transform: scale(1.1);
+        }
     </style>
+    <script src="./html2canvas.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -453,17 +476,20 @@
 
         // 修改结果显示的HTML模板
         function getCharItemHTML(char, charData, imgUrl, hasImage) {
-            // 确保charData存在，如果不存在则使用空对象
             const data = charData || { char };
-            // 安全地序列化数据
             const safeCharData = JSON.stringify(data).replace(/"/g, '&quot;');
             
             return `
                 <div class="char-item">
-                    <button class="favorite-btn ${isFavorite(char) ? 'active' : ''}" 
-                            onclick="toggleFavorite('${char}', '${safeCharData}', this)">
-                        ★
-                    </button>
+                    <div class="button-group">
+                        <button class="favorite-btn ${isFavorite(char) ? 'active' : ''}" 
+                                onclick="toggleFavorite('${char}', '${safeCharData}', this)">
+                            ★
+                        </button>
+                        <button class="export-btn" onclick="exportCard(this.closest('.char-item'), '${char}')">
+                            <i>📷</i>
+                        </button>
+                    </div>
                     <h2>${char}</h2>
                     ${hasImage ? `<img class="stroke-image" src="${imgUrl}" alt="${char}的笔画" />` : ''}
                     <div class="code-info">
@@ -584,7 +610,6 @@
         // 确保样式正确
         const styles = `
             .favorite-btn {
-                position: absolute;
                 top: 15px;
                 right: 15px;
                 background: none;
@@ -606,6 +631,37 @@
         const styleSheet = document.createElement("style");
         styleSheet.textContent = styles;
         document.head.appendChild(styleSheet);
+
+        async function exportCard(cardElement, char) {
+            try {
+                // 临时移除按钮组以获得更好的截图效果
+                const buttonGroup = cardElement.querySelector('.button-group');
+                buttonGroup.style.display = 'none';
+                
+                const canvas = await html2canvas(cardElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2, // 提高图片质量
+                    logging: false,
+                    useCORS: true
+                });
+                
+                // 恢复按钮组显示
+                buttonGroup.style.display = 'flex';
+                
+                // 将 canvas 转换为 base64 图片数据
+                const imageData = canvas.toDataURL('image/png');
+                
+                // 调用 Android 的方法保存图片
+                // 注意：需要在 Android 端实现 saveImage 方法
+                if (window.Android) {
+                    window.Android.saveImage(imageData, `check_wubi_${char}_${Date.now()}`);
+                } else {
+                    console.log('Android 接口未找到');
+                }
+            } catch (error) {
+                console.error('导出图片失败:', error);
+            }
+        }
     </script>
 </body>
 </html>

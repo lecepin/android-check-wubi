@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五笔查询</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            color: #34495e;
+            margin: 0;
+            padding: 20px 0;
+            font-weight: normal;
+        }
+        
+        .header-info {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin: 0;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .header-info span {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-info span:hover {
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .header-info i {
+            margin-right: 6px;
+            color: #3498db;
+        }
+        
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        
+        .search-input {
+            width: calc(100% - 40px);
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .search-button {
+            padding: 12px 40px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .search-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .result-container {
+            max-width: 800px;
+            margin: 40px auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 0 20px;
+        }
+        
+        .char-item {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        .char-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+        }
+        
+        .char-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .char-item h2 {
+            font-size: 48px;
+            color: #2c3e50;
+            margin: 0 0 20px 0;
+            text-align: center;
+            font-weight: normal;
+        }
+        
+        .stroke-image {
+            max-width: 200px;
+            width: 100%;
+            height: auto;
+            margin: 15px auto;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            background: #fff;
+            padding: 10px;
+            display: block;
+        }
+        
+        .code-info {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            text-align: left;
+        }
+        
+        .code-label {
+            font-weight: 500;
+            color: #3498db;
+            margin-right: 8px;
+        }
+        
+        .code-value {
+            color: #34495e;
+            font-family: "Source Code Pro", monospace;
+            letter-spacing: 1px;
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .search-container {
+                padding: 20px;
+            }
+            
+            .result-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stroke-image {
+                max-width: 160px;
+            }
+        }
+        
+        .favorite-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #ddd;
+            transition: all 0.3s ease;
+        }
+        
+        .favorite-btn.active {
+            color: #f1c40f;
+        }
+        
+        .favorites-entry {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #eee;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .favorites-entry:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.15);
+        }
+        
+        .favorites-entry i {
+            color: #f1c40f;
+            font-size: 16px;
+        }
+        
+        .favorites-count {
+            background: #3498db;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        
+        .favorites-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            z-index: 1000;
+            overflow-y: auto;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .favorites-page.visible {
+            opacity: 1;
+        }
+        
+        .favorites-header {
+            position: sticky;
+            top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1001;
+        }
+        
+        .back-btn {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        body.favorites-open {
+            overflow: hidden;
+        }
+        
+        /* 禁用文本选择和长按高亮 */
+        * {
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none; /* Safari */
+            -khtml-user-select: none; /* Konqueror HTML */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version */
+            -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
+        }
+        
+        /* 允许输入框可以选择文本 */
+        input {
+            -webkit-user-select: text;
+            -khtml-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>五笔查询</h1>
+        <div class="header-info">
+            <span><i>📚</i>五笔86版</span>
+            <span id="char-count"><i>📝</i>载入中...</span>
+        </div>
+    </div>
+    
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="请输入要查询的汉字...">
+        <button class="search-button">查 询</button>
+    </div>
+    
+    <div class="result-container" id="results">
+        <!-- 结果将在这里动态显示 -->
+    </div>
+    
+    <div class="favorites-entry">
+        <i>★</i> 
+        <span class="favorites-count">0</span>
+    </div>
+
+    <div class="favorites-page">
+        <div class="favorites-header">
+            <button class="back-btn">← 返回</button>
+            <h2>我的收藏</h2>
+            <div style="width: 50px"></div>
+        </div>
+        <div class="result-container" id="favorites-container">
+            <!-- 收藏的内容将在这里显示 -->
+        </div>
+    </div>
+    
+    <script>
+        // 封装请求方法
+        function request(url, options = {}) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open(options.method || 'GET', url, true);
+                
+                if (options.headers) {
+                    Object.keys(options.headers).forEach(key => {
+                        xhr.setRequestHeader(key, options.headers[key]);
+                    });
+                }
+
+                xhr.onload = function() {
+                    if (xhr.status === 200 || xhr.status === 0) { // status 0 表示本地文件加载成功
+                        try {
+                            const response = options.responseType === 'text' 
+                                ? xhr.responseText 
+                                : JSON.parse(xhr.responseText);
+                            resolve(response);
+                        } catch (e) {
+                            reject(new Error('解析响应数据失败: ' + e.message));
+                        }
+                    } else {
+                        reject(new Error('请求失败: ' + xhr.statusText));
+                    }
+                };
+
+                xhr.onerror = function() {
+                    reject(new Error('网络请求失败: ' + xhr.statusText));
+                };
+
+                xhr.send(options.body);
+            });
+        }
+
+        // 使用相对路径加载五笔数据
+        let wubiData = null;
+        request('wubi.json')  // 使用相对路径
+            .then(data => {
+                wubiData = data;
+                console.log('五笔数据加载完成');
+                const countElement = document.getElementById('char-count');
+                countElement.innerHTML = `<i>📝</i>${wubiData.length.toLocaleString()}个汉字`;
+            })
+            .catch(error => {
+                console.error('加载五笔数据失败:', error);
+                const countElement = document.getElementById('char-count');
+                countElement.innerHTML = `<i>❌</i>加载失败`;
+            });
+
+        // 如果需要加载其他资源，可以这样使用：
+        async function loadResource(url, options = {}) {
+            try {
+                const data = await request(url, options);
+                return data;
+            } catch (error) {
+                console.error(`加载资源失败 (${url}):`, error);
+                throw error;
+            }
+        }
+
+        // 使用示例：
+        // const someData = await loadResource('some.json');
+        // const textData = await loadResource('some.txt', { responseType: 'text' });
+
+        // 检查图片是否存在
+        function imageExists(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = url;
+            });
+        }
+
+        // 收藏相关的功能
+        const STORAGE_KEY = 'wubi-favorites';
+        let favorites = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+        function updateFavorites() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
+            updateFavoritesCount();
+        }
+
+        function toggleFavorite(char, charData, button) {
+            event.stopPropagation();
+            const index = favorites.findIndex(f => f.char === char);
+            if (index === -1) {
+                const data = typeof charData === 'string' ? JSON.parse(charData) : charData;
+                favorites.push({ char, ...data });
+                button.classList.add('active');
+            } else {
+                favorites.splice(index, 1);
+                button.classList.remove('active');
+            }
+            updateFavorites();
+        }
+
+        function isFavorite(char) {
+            return favorites.some(f => f.char === char);
+        }
+
+        // 修改结果显示的HTML模板
+        function getCharItemHTML(char, charData, imgUrl, hasImage) {
+            // 确保charData存在，如果不存在则使用空对象
+            const data = charData || { char };
+            // 安全地序列化数据
+            const safeCharData = JSON.stringify(data).replace(/"/g, '&quot;');
+            
+            return `
+                <div class="char-item">
+                    <button class="favorite-btn ${isFavorite(char) ? 'active' : ''}" 
+                            onclick="toggleFavorite('${char}', '${safeCharData}', this)">
+                        ★
+                    </button>
+                    <h2>${char}</h2>
+                    ${hasImage ? `<img class="stroke-image" src="${imgUrl}" alt="${char}的笔画" />` : ''}
+                    <div class="code-info">
+                        <p><span class="code-label">五笔码</span><span class="code-value">${data.code || '未找到'}</span></p>
+                        <p><span class="code-label">简码</span><span class="code-value">${data.code_short || '无'}</span></p>
+                        ${data.code_more ? `<p><span class="code-label">其他编码</span><span class="code-value">${data.code_more}</span></p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 收藏夹页面相关
+        document.querySelector('.favorites-entry').addEventListener('click', () => {
+            history.pushState({ page: 'favorites' }, '', '#favorites');
+            showFavoritesPage();
+        });
+
+        document.querySelector('.back-btn').addEventListener('click', () => {
+            history.back();
+        });
+
+        window.addEventListener('popstate', (event) => {
+            if (event.state?.page === 'favorites') {
+                showFavoritesPage();
+            } else {
+                hideFavoritesPage();
+                renderResults();
+            }
+        });
+
+        function showFavoritesPage() {
+            const favoritesPage = document.querySelector('.favorites-page');
+            favoritesPage.style.display = 'block';
+            document.body.classList.add('favorites-open');
+            // 使用 setTimeout 来确保过渡效果生效
+            setTimeout(() => {
+                favoritesPage.classList.add('visible');
+            }, 10);
+            renderFavorites();
+        }
+
+        function hideFavoritesPage() {
+            const favoritesPage = document.querySelector('.favorites-page');
+            favoritesPage.classList.remove('visible');
+            document.body.classList.remove('favorites-open');
+            // 等待过渡效果完成后再隐藏
+            setTimeout(() => {
+                favoritesPage.style.display = 'none';
+            }, 300);
+        }
+
+        async function renderFavorites() {
+            const container = document.getElementById('favorites-container');
+            container.innerHTML = '';
+            
+            if (favorites.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">暂无收藏内容</div>';
+                return;
+            }
+            
+            for (const fav of favorites) {
+                const imgUrl = `char-img/${fav.char}.gif`; 
+                const hasImage = await imageExists(imgUrl);
+                container.innerHTML += getCharItemHTML(fav.char, fav, imgUrl, hasImage);
+            }
+        }
+
+        // 确保localStorage中的数据正确加载
+        try {
+            favorites = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        } catch (e) {
+            favorites = [];
+            console.error('Failed to load favorites:', e);
+        }
+
+        // 更新收藏数量显示
+        function updateFavoritesCount() {
+            const count = document.querySelector('.favorites-count');
+            if (count) {
+                count.textContent = favorites.length;
+            }
+        }
+
+        // 初始化时更新计数
+        document.addEventListener('DOMContentLoaded', () => {
+            updateFavoritesCount();
+        });
+
+        // 添加一个专门的渲染结果函数
+        async function renderResults() {
+            const input = document.querySelector('.search-input').value.trim();
+            if (!input || !wubiData) return;
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            for (const char of input) {
+                const charData = wubiData.find(item => item.char === char);
+                const imgUrl = `char-img/${char}.gif`; // 改用 png 格式
+                const hasImage = await imageExists(imgUrl);
+                resultsDiv.innerHTML += getCharItemHTML(char, charData, imgUrl, hasImage);
+            }
+        }
+
+        // 修改搜索按钮的事件处理
+        document.querySelector('.search-button').addEventListener('click', renderResults);
+
+        // 修改收藏夹点击字符的处理
+        document.getElementById('favorites-container').addEventListener('click', (e) => {
+            const charItem = e.target.closest('.char-item');
+            if (charItem) {
+                const char = charItem.querySelector('h2').textContent;
+                document.querySelector('.search-input').value = char;
+                history.back();
+            }
+        });
+
+        // 确保样式正确
+        const styles = `
+            .favorite-btn {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #ddd;
+                transition: all 0.3s ease;
+                z-index: 10;
+            }
+            
+            .favorite-btn.active {
+                color: #f1c40f;
+                text-shadow: 0 0 5px rgba(241, 196, 15, 0.3);
+            }
+        `;
+
+        // 将样式添加到文档中
+        const styleSheet = document.createElement("style");
+        styleSheet.textContent = styles;
+        document.head.appendChild(styleSheet);
+    </script>
+</body>
+</html>
